@@ -1,30 +1,48 @@
-import { Scene } from 'phaser'
+import { Scene } from "phaser";
+import { gameConfigs, gameOptions } from "../utils/constants";
 
 export class Game extends Scene {
   constructor() {
-    super('Game')
+    super("Game");
   }
 
-  preload() {
-    this.load.setPath('assets')
+  obstacleGroup: Phaser.Physics.Arcade.Group;
+  ball: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
+  ground: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
 
-    this.load.image('background', 'bg.png')
-    this.load.image('logo', 'logo.png')
+  preload() {
+    this.load.setPath("assets");
+
+    this.load.image("ground", "ground.png");
+    this.load.image("ball", "ball.png");
+    this.load.image("obstacle", "obstacle.png");
   }
 
   create() {
-    this.add.image(512, 384, 'background')
-    this.add.image(512, 350, 'logo').setDepth(100)
-    this.add
-      .text(512, 490, 'Make something fun!\nand share it with us:\nsupport@phaser.io', {
-        fontFamily: 'Arial Black',
-        fontSize: 38,
-        color: '#ffffff',
-        stroke: '#000000',
-        strokeThickness: 8,
-        align: 'center'
-      })
-      .setOrigin(0.5)
-      .setDepth(100)
+    this.ground = this.physics.add.sprite(gameConfigs.width / 2, (gameConfigs.height / 4) * 3, "ground");
+    this.ground.setImmovable(true); // 衝突しても不動にする
+
+    this.obstacleGroup = this.physics.add.group();
+    let obstacleX: number = gameConfigs.width;
+    for (let i = 0; i < 10; i++) {
+      let obstacle: any = this.obstacleGroup.create(obstacleX, this.ground.getBounds().top, "obstacle");
+      obstacle.setOrigin(0.5, 1); // 各グループメンバーの原点X、原点Yを設定する
+      obstacle.setImmovable(true);
+      obstacleX += Phaser.Math.Between(gameOptions.obstacleDistanceRange[0], gameOptions.obstacleDistanceRange[1]);
+    }
+
+    this.ball = this.physics.add.sprite(
+      (gameConfigs.width / 10) * 2,
+      (gameConfigs.height / 4) * 3 - gameOptions.bounceHeight,
+      "ball",
+    );
+    this.ball.body.gravity.y = gameOptions.ballGravity; // 重力による加速度
+    this.ball.setBounce(1); // 跳ねる値
+  }
+
+  update() {
+    // 2つの物理オブジェクト、衝突判定をつける
+    this.physics.world.collide(this.ground, this.ball, function () {}, undefined, this);
+    this.physics.world.collide(this.ball, this.obstacleGroup, function () {}, undefined, this);
   }
 }
