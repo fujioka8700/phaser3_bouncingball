@@ -3,13 +3,16 @@ import { gameConfigs, gameOptions } from "../utils/constants";
 
 export class Game extends Scene {
   constructor() {
-    super("Game");
+    super("PlayGame");
   }
 
   obstacleGroup: Phaser.Physics.Arcade.Group;
   ball: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   ground: Phaser.Types.Physics.Arcade.SpriteWithDynamicBody;
   firstBounce: number;
+  topScore: number;
+  score: number;
+  scoreText: Phaser.GameObjects.Text;
 
   preload() {
     this.load.setPath("assets");
@@ -35,7 +38,7 @@ export class Game extends Scene {
     }
     this.obstacleGroup.setVelocityX(-gameOptions.obstacleSpeed); // 障害物を左に動かす
 
-    this.input.on("pointerdown", this.boost, this); // 特定のイベント(マウスクリック)のリスナーを追加します。
+    this.input.on("pointerdown", this.boost, this); // 特定のイベント(マウスクリック)のリスナーを追加する
 
     this.ball = this.physics.add.sprite(
       (gameConfigs.width / 10) * 2,
@@ -44,6 +47,20 @@ export class Game extends Scene {
     );
     this.ball.body.gravity.y = gameOptions.ballGravity; // 重力による加速度
     this.ball.setBounce(1); // 跳ねる値
+    this.ball.setCircle(25); // 当たり判定を円形にする
+
+    this.score = 0;
+    this.topScore =
+      localStorage.getItem(gameOptions.localStorageName) == null
+        ? 0
+        : Number(localStorage.getItem(gameOptions.localStorageName));
+    this.scoreText = this.add.text(10, 10, "");
+    this.updateScore(this.score);
+  }
+
+  updateScore(inc: number) {
+    this.score += inc;
+    this.scoreText.text = `Score: ${this.score} \nBest: ${this.topScore}`;
   }
 
   boost() {
@@ -78,11 +95,22 @@ export class Game extends Scene {
     );
 
     // ボールと障害物の衝突判定をする
-    this.physics.world.collide(this.ball, this.obstacleGroup, function () {}, undefined, this);
+    this.physics.world.collide(
+      this.ball,
+      this.obstacleGroup,
+      function (this: Game) {
+        localStorage.setItem(gameOptions.localStorageName, String(Math.max(this.score, this.topScore)));
+        this.scene.start("PlayGame"); // ゲームを最初からスタートする
+      },
+      undefined,
+      this,
+    );
 
     this.obstacleGroup.getChildren().forEach(function (this: Game, obstacle: any) {
-      // 障害物が左端に行き、消えたら一番左に移動する
       if (obstacle.getBounds().right < 0) {
+        this.updateScore(1);
+
+        // 障害物が左端に行き、消えたら一番左に移動する
         obstacle.x =
           this.getRightmostObstacle() +
           Phaser.Math.Between(gameOptions.obstacleDistanceRange[0], gameOptions.obstacleDistanceRange[1]);
