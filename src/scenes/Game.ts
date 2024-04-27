@@ -30,6 +30,7 @@ export class Game extends Scene {
       obstacle.setImmovable(true);
       obstacleX += Phaser.Math.Between(gameOptions.obstacleDistanceRange[0], gameOptions.obstacleDistanceRange[1]);
     }
+    this.obstacleGroup.setVelocityX(-gameOptions.obstacleSpeed); // 障害物を左に動かす
 
     this.ball = this.physics.add.sprite(
       (gameConfigs.width / 10) * 2,
@@ -40,9 +41,25 @@ export class Game extends Scene {
     this.ball.setBounce(1); // 跳ねる値
   }
 
+  getRightmostObstacle() {
+    let rightmostObstacle = 0;
+    this.obstacleGroup.getChildren().forEach(function (obstacle: any) {
+      rightmostObstacle = Math.max(rightmostObstacle, obstacle.x);
+    });
+    return rightmostObstacle;
+  }
+
   update() {
     // 2つの物理オブジェクト、衝突判定をつける
     this.physics.world.collide(this.ground, this.ball, function () {}, undefined, this);
     this.physics.world.collide(this.ball, this.obstacleGroup, function () {}, undefined, this);
+
+    this.obstacleGroup.getChildren().forEach(function (this: Game, obstacle: any) {
+      if (obstacle.getBounds().right < 0) {
+        obstacle.x =
+          this.getRightmostObstacle() +
+          Phaser.Math.Between(gameOptions.obstacleDistanceRange[0], gameOptions.obstacleDistanceRange[1]);
+      }
+    }, this);
   }
 }
