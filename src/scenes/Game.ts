@@ -54,7 +54,7 @@ export class Game extends Scene {
       localStorage.getItem(gameOptions.localStorageName) == null
         ? 0
         : Number(localStorage.getItem(gameOptions.localStorageName));
-    this.scoreText = this.add.text(10, 10, "");
+    this.scoreText = this.add.text(10, 10, "", { fontSize: gameOptions.fontSize });
     this.updateScore(this.score);
   }
 
